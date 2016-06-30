@@ -12,7 +12,7 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
     @setModel @model.deepClone() # Working on a clone allows cancel to easily drop any changes we make
     @model.get('source_data_criteria').on 'remove', => @materialize()
     if bonnie.isPortfolio
-      @measureRibbon = new Thorax.Views.MeasureRibbon model: @model
+      @measureRibbon = new Thorax.Views.MeasureRibbon(model: @model, builderView: @)
     @editCriteriaCollectionView = new Thorax.CollectionView
       collection: @model.get('source_data_criteria')
       itemView: (item) => new Thorax.Views.EditCriteriaView(model: item.model, measure: @measure)
@@ -156,9 +156,10 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
     bonnie.navigate "measures/#{@measure.get('hqmf_set_id')}/patients/#{@model.id}/edit"
 
   save: (e) ->
-    e.preventDefault()
-    @$('.has-error').removeClass('has-error')
-    $(e.target).button('saving').prop('disabled', true)
+    if !arguments[1]?  #Meaning this function wasnt called from the measure ribbon
+      e.preventDefault()
+      @$('.has-error').removeClass('has-error')
+      $(e.target).button('saving').prop('disabled', true)
     @serializeWithChildren()
     @model.sortCriteriaBy 'start_date', 'end_date'
     status = @originalModel.save @model.toJSON(),
@@ -167,8 +168,9 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
         @measure?.get('patients').add model # and the measure's patient collection
         if bonnie.isPortfolio
           @measures.each (m) -> m.get('patients').add model
-        route = if @measure then "measures/#{@measure.get('hqmf_set_id')}" else "patients"
-        bonnie.navigate route, trigger: true
+        if !arguments[1]? #Meaning this function wasnt called from the measure ribbon
+          route = if @measure then "measures/#{@measure.get('hqmf_set_id')}" else "patients"
+          bonnie.navigate route, trigger: true
     unless status
       $(e.target).button('reset').prop('disabled', false)
       messages = []
