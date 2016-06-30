@@ -5,6 +5,7 @@ class Thorax.Views.MeasureRibbon extends Thorax.CollectionView
     @itemView = (item) => new Thorax.Views.MeasureRibbonCell
       patient: @model
       population: item.model
+      parentofbuilderView: @builderView
 
 class Thorax.Views.MeasureRibbonCell extends Thorax.Views.BuilderChildView
   tagName: 'span'
@@ -25,6 +26,7 @@ class Thorax.Views.MeasureRibbonCell extends Thorax.Views.BuilderChildView
       else
         @$el.show()
         d3.select(@$el.find('.ribbon-viz').get(0)).datum(@model.get('comparisons')).call(bonnie.viz.MeasureRibbonCell())
-  activate: ->
+  activate: (e) ->
+    @parentofbuilderView.save(e, true)
     @$el.addClass('active').siblings('.active').removeClass('active')
     @trigger 'bonnie:loadPopulation', @population
