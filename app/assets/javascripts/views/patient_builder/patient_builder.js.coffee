@@ -156,9 +156,10 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
     bonnie.navigate "measures/#{@measure.get('hqmf_set_id')}/patients/#{@model.id}/edit"
 
   save: (e, fromPortfolio) ->
-    e.preventDefault()
-    @$('.has-error').removeClass('has-error')
-    $(e.target).button('saving').prop('disabled', true)
+    if !fromPortfolio
+      e.preventDefault()
+      @$('.has-error').removeClass('has-error')
+      $(e.target).button('saving').prop('disabled', true)
     @serializeWithChildren()
     @model.sortCriteriaBy 'start_date', 'end_date'
     status = @originalModel.save @model.toJSON(),
