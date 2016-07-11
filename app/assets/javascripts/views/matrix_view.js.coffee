@@ -45,6 +45,13 @@ class Thorax.Views.MatrixCell extends Thorax.Views.BonnieView
   className: ->
     difference = @model.differenceFromExpected()
     return 'blank link' if !difference.has('match') # Not yet calculated
+    return 'irrelevent link' if difference.expected.attributes.IPP == undefined && difference.expected.attributes.STRAT == undefined #No expectations defined
     return 'blank link' if difference.get('match') && @model.get('IPP') == 0 # Matches expectations, but not in IPP, so not noteworthy
+    return 'ipp link' if difference.get('match') && @model.get('IPP') == 1 && difference.expected.attributes.DENOM == 0
+    return 'denom link' if difference.get('match') && @model.get('DENOM') == 1 && @model.get('DENEX') == 0 &&  @model.get('DENEXCEP') == 0 && @model.get('NUMER') == 0
+    return 'denex link' if difference.get('match') && @model.get('DENEX') == 1
+    return 'denexcep link' if difference.get('match') && @model.get('DENEXCEP') == 1
+    return 'numer link' if difference.get('match') && @model.get('NUMER') == 1
+    return 'numex link' if difference.get('match') && @model.get('NUMEX') == 1
     return 'match link' if difference.get('match') # Matches expectations
     return 'problem link' # Doesn't match
