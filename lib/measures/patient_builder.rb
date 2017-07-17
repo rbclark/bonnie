@@ -203,7 +203,10 @@ module Measures
           oid = result_value['code_list_id']
           codes = result_value['codes'] || Measures::PatientBuilder.select_codes(oid, value_sets)
           vs = Measures::PatientBuilder.select_value_sets(oid, value_sets)
-          derived << CodedResultValue.new({codes:codes, description: vs["display_name"]})
+          # Only put codes on a result value if there are actually codes
+          if codes.present?
+            derived << CodedResultValue.new({codes:codes, description: vs["display_name"]})
+          end
         elsif result_value['type'] == 'TS'
           # Recycling the use of Range/PhysicalQuantity for TimeStamps
           time = HQMF::Range.from_json('low' => {'value' => result_value['value'], 'unit' => 'UnixTime'})
