@@ -91,6 +91,11 @@ class Thorax.Views.CqlClauseView extends Thorax.Views.BonnieView
     if @highlightPatientDataEnabled == true
       # we will only have highlightable results if we have a ref_id for this clause
       if @element.ref_id?
+
+        # if latest result is set make a tooltip
+        if @latestResult != undefined
+          $(@el).tooltip(title: CQLResultsHelpers.resultText(@latestResult?.raw), position: 'top')
+
         # if there are results and they are an array, we can highlight!
         if Array.isArray(@latestResult?.raw) && @latestResult?.raw.length > 0
           dataCriteriaIDs = []

@@ -5,6 +5,36 @@
 class CQLResultsHelpers
 
   ###*
+  # Determine descriptive text for a raw engine result. Useful for tooltips.
+  # @param {boolean|Object[]|Object|cql.Interval} result - The result to create a string for
+  # @returns {string} A string describing the result.
+  ###
+  @resultText: (result) ->
+    resultText = "Result: "
+
+    # If the result is an array we will assume it is of patient history elements
+    if Array.isArray(result)
+      if result.length <= 0
+        resultText += "Empty"
+      else if result.length == 1
+        resultText += "1 History Element"
+      else
+        resultText += "#{result.length} History Elements"
+    else if result == true  # Specifically a boolean true
+      resultText += 'true'
+    else if result == false  # Specifically a boolean false
+      resultText += 'false'
+    else if result instanceof cql.Interval  # Handle the cql.Interval result
+      resultText += 'Interval '
+      resultText += moment.utc(result.low.toJSDate()).format("MM/DD/YYYY hh:mm:ss A")
+      resultText += ' to '
+      resultText += moment.utc(result.high.toJSDate()).format("MM/DD/YYYY hh:mm:ss A")
+    else if result == null  # Specifically null
+      resultText += 'None'
+    return resultText
+
+
+  ###*
   # Builds the `statement_relevance` map. This map gets added to the Result attributes that the calculator returns.
   #
   # The statement_relevance map indicates which define statements were actually relevant to a population inclusion
