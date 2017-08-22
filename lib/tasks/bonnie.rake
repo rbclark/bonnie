@@ -193,10 +193,78 @@ namespace :bonnie do
     task :export_spreadsheets => :environment do
       user_email = ENV['USER_EMAIL']
       raise "#{user_email} not found" unless user = User.find_by(email: user_email)
+      bbc = BonnieBackendCalculator.new
       Measure.where(user_id: user.id).each do |measure|
+        puts "Exporting measure #{measure.cms_id}"
         records = Record.by_user(user).where({:measure_ids.in => [measure.hqmf_set_id]})
         next unless records.size > 0
-        File.open("#{measure.cms_id}.xlsx", "w") { |f| f.write(PatientExport.export_excel_file(measure, records).to_stream.read) }
+        results = {}
+        # Export each population for the measure
+        # (e.g. if it's a stratified measure, export each stratification)
+        measure.populations.each_with_index do |population, population_set_index|
+          bbc.set_measure_and_population(measure, population_set_index, clear_db_cache: true, rationale: true)
+          patient_results = {}
+          records.each_with_index do |rec, patient_index|
+            patient_result = bbc.calculate(rec)
+            # add population index onto the patient because the exporter looks for it
+            patient_result['population_index'] = population_set_index.to_s
+            patient_result['rationale'].each do |key, val|
+              if val == false
+                patient_result['rationale'][key] = 'false'
+              end
+              # TODO: make sure TrueValue doesn't need to be exported as a string as well
+            end
+            # Must be a HashWithIndifferentAccess
+            # because hash keys get acccessed with strings and symbols in the exporter
+            patient_results[patient_index.to_s] = patient_result.with_indifferent_access
+            print "."
+            # require 'pry'
+            # binding.pry
+          end
+          print "\n"
+          results[population_set_index.to_s] = patient_results
+        end
+        File.open("#{measure.cms_id}.xlsx", "w") { |f| f.write(PatientExport.export_excel_file(measure, records, results).to_stream.read) }
+      end
+    end
+
+    desc 'Stream spreadsheets to stdout for all measures loaded by a user'
+    task :stream_spreadsheets => :environment do
+      user_email = ENV['USER_EMAIL']
+      measure_id = ENV['MEASURE']
+      raise "#{user_email} not found" unless user = User.find_by(email: user_email)
+      raise "#{measure} not found" unless measure = Measure.find_by(hqmf_id: measure_id)
+      bbc = BonnieBackendCalculator.new
+      # Measure.where(user_id: user.id).each do |measure|
+        # puts "Exporting measure #{measure.cms_id}"
+        records = Record.by_user(user).where({:measure_ids.in => [measure.hqmf_set_id]})
+        next unless records.size > 0
+        results = {}
+        # Export each population for the measure
+        # (e.g. if it's a stratified measure, export each stratification)
+        measure.populations.each_with_index do |population, population_set_index|
+          bbc.set_measure_and_population(measure, population_set_index, clear_db_cache: true, rationale: true)
+          patient_results = {}
+          records.each_with_index do |rec, patient_index|
+            patient_result = bbc.calculate(rec)
+            # add population index onto the patient because the exporter looks for it
+            patient_result['population_index'] = population_set_index.to_s
+            patient_result['rationale'].each do |key, val|
+              if val == false
+                patient_result['rationale'][key] = 'false'
+              end
+              # TODO: make sure TrueValue doesn't need to be exported as a string as well
+            end
+            # Must be a HashWithIndifferentAccess
+            # because hash keys get acccessed with strings and symbols in the exporter
+            patient_results[patient_index.to_s] = patient_result.with_indifferent_access
+            # print "."
+          end
+          # print "\n"
+          results[population_set_index.to_s] = patient_results
+        # end
+        # File.open("#{measure.cms_id}.xlsx", "w") { |f| f.write(PatientExport.export_excel_file(measure, records, results).to_stream.read) }
+        print PatientExport.export_excel_file(measure, records, results).to_stream.string
       end
     end
 
