@@ -4,6 +4,62 @@
 namespace :bonnie do
   namespace :patients do
 
+    desc %{"temp task"
+      
+    $ rake bonnie:patients:find_duplicated_value_sets}
+    task :find_duplicated_value_sets => :environment do
+      
+      # Iterate over all users
+      User.all.each do |user|
+        if !user.email.include? "mitre.org"
+          value_sets = HealthDataStandards::SVS::ValueSet.where(user_id: user.id)
+          hds_objects = value_sets.to_a
+          # Iterate over all of their measures
+          oids_to_objects = {}
+          hds_objects.each do |object|
+            if oids_to_objects[object['oid']]
+              oids_to_objects[object['oid']].push(object)
+            else
+              oids_to_objects[object['oid']] = [object]
+            end 
+          end
+          
+          differing_valuesets = {} # oid to ObjectId
+          oids_to_objects.each do |key, obj_arr|
+            if obj_arr.length > 1 
+              # there are more than 1 with the same oid
+              version = obj_arr[0]['version']
+              concepts = obj_arr[0]['concepts']
+          
+              obj_arr.each do |obj|
+                # are there any version differences?
+                #if obj['version'].to_s != version.to_s
+                #  differing_valuesets[obj['oid']] = obj['_id']
+                #end 
+          
+                if obj['concepts']
+                  # are there any concept code differences?
+                  obj['concepts'].each_with_index do |concept, i|
+                    if concept['code'] && concepts[i] && concepts[i]['code']
+                      if concept['code'] != concepts[i]['code']
+                        differing_valuesets[obj['oid']] = obj['_id']
+                      end 
+                    end
+                  end
+                end
+              end 
+            end 
+          end
+          if differing_valuesets.length != 0
+            puts user.email
+            puts user.id
+            puts differing_valuesets
+          end
+        end
+      end
+    end
+
+
     desc %{Update source_data_criteria to match fields from measure
 
     $ rake bonnie:patients:update_source_data_criteria}
