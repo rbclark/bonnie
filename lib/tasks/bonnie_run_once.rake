@@ -59,6 +59,41 @@ namespace :bonnie do
       end
     end
 
+  desc %{"temp task"
+  $ rake bonnie:patients:find_duplicated_value_set_oid_versions}
+  task :find_duplicated_value_set_oid_versions => :environment do
+  # Iterate over all users
+    User.all.each do |user|
+      if !user.email.include? "mitre.org"
+        # Create empty hashmap of oid -> version array
+        oidToVersions = {}
+        oidToMeasures = {}
+        # Iterate over all the users Measures
+          # Iterate over all the value_set_oid_version_objects
+            # If oid in differing_valuesets add version to oid->version version array IF IT IS NOT ALREADY IN ARRAY
+        measures = CqlMeasure.where(user_id: user.id)
+        measures.each do |measure|
+          measure.value_set_oid_version_objects.each do |oid_version|
+            if !oidToVersions[oid_version['oid']]
+              oidToVersions[oid_version['oid']] = [oid_version['version']]
+              oidToMeasures[oid_version['oid']] = [measure.hqmf_set_id]
+            elsif !oidToVersions[oid_version['oid']].include?(oid_version['version'])
+              oidToVersions[oid_version['oid']].push oid_version['version']
+              oidToMeasures[oid_version['oid']].push measure.hqmf_set_id
+            end
+          end
+        end
+        oidToVersions.each do |oid, versions|
+          if versions.length > 1
+            puts user.email
+            puts oid
+            puts oidToMeasures[oid]
+          end
+        end
+      end
+    end
+  end
+   
 
     desc %{Update source_data_criteria to match fields from measure
 
@@ -215,6 +250,7 @@ namespace :bonnie do
     end
   end
 
+  desc "update_value_set_versions"
   task :update_value_set_versions => :environment do
     User.all.each do |user|
       puts "Updating value sets for user " + user.email
@@ -313,7 +349,6 @@ namespace :bonnie do
       end
     end
   end
-
 
   task :update_facilities_and_diagnoses => :environment do
     printf "%-22s", "\e[#{32}m#{"[TITLE] "}\e[0m"
