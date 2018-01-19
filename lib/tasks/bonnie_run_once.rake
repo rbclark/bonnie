@@ -1,6 +1,5 @@
 # This rakefile is for tasks that are designed to be run once to address a specific problem; we're keeping
 # them as a history and as a reference for solving related problems
-
 namespace :bonnie do
   namespace :patients do
 
@@ -62,6 +61,7 @@ namespace :bonnie do
   desc %{"temp task"
   $ rake bonnie:patients:find_duplicated_value_set_oid_versions}
   task :find_duplicated_value_set_oid_versions => :environment do
+
   # Iterate over all users
     User.all.each do |user|
       if !user.email.include? "mitre.org"
@@ -83,11 +83,24 @@ namespace :bonnie do
             end
           end
         end
+
+        affected_measures = []
+
         oidToVersions.each do |oid, versions|
           if versions.length > 1
-            puts user.email
-            puts oid
-            puts oidToMeasures[oid]
+            # we only care if at least one of the version is 'N/A'
+            if versions.include?('N/A')
+              if affected_measures == []
+                puts "\n" + user.email
+              end
+              oidToMeasures[oid].each do |hqmf_set_id|
+                if !affected_measures.include?(hqmf_set_id)
+                  puts hqmf_set_id
+                  affected_measures.push hqmf_set_id
+                end
+              end
+              puts oid # comment out this to see just the measures
+            end
           end
         end
       end
