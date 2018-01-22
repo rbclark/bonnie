@@ -1,5 +1,6 @@
 # This rakefile is for tasks that are designed to be run once to address a specific problem; we're keeping
 # them as a history and as a reference for solving related problems
+require 'pry'
 namespace :bonnie do
   namespace :patients do
 
@@ -76,10 +77,15 @@ namespace :bonnie do
           measure.value_set_oid_version_objects.each do |oid_version|
             if !oidToVersions[oid_version['oid']]
               oidToVersions[oid_version['oid']] = [oid_version['version']]
-              oidToMeasures[oid_version['oid']] = [measure.hqmf_set_id]
+              # oidToMeasures[oid_version['oid']] = measure_package['created_at']
+              # oidToMeasures[oid_version['oid']] = [measure.hqmf_set_id]
+              oidToMeasures[oid_version['oid']] = ["ObjectId('" + measure.id + "')"]
+              oidToMeasures[oid_version['oid']] = [measure.id]
             elsif !oidToVersions[oid_version['oid']].include?(oid_version['version'])
               oidToVersions[oid_version['oid']].push oid_version['version']
-              oidToMeasures[oid_version['oid']].push measure.hqmf_set_id
+              # oidToMeasures[oid_version['oid']].push measure_package['created_at']
+              # oidToMeasures[oid_version['oid']].push measure.hqmf_set_id
+              oidToMeasures[oid_version['oid']].push measure.id
             end
           end
         end
@@ -92,14 +98,29 @@ namespace :bonnie do
             if versions.include?('N/A')
               if affected_measures == []
                 puts "\n" + user.email
+                affected_measures = ['.']
               end
               oidToMeasures[oid].each do |hqmf_set_id|
                 if !affected_measures.include?(hqmf_set_id)
-                  puts hqmf_set_id
-                  affected_measures.push hqmf_set_id
+                  begin
+                    measure_package = CqlMeasurePackage.find_by(measure_id: hqmf_set_id)
+                  rescue
+                    measure_package = {updated_at: nil}
+                  end
+
+                  # ignore any that have been updated after 2017-12-21
+                  if measure_package['updated_at']
+                    if measure_package['updated_at'] <= Time.new(2017, 12, 21)
+                      puts hqmf_set_id.to_s + " " + measure_package['updated_at'].to_s
+                      affected_measures.push hqmf_set_id
+                    end
+                  else
+                    puts hqmf_set_id.to_s + " " + measure_package['updated_at'].to_s
+                    affected_measures.push hqmf_set_id
+                  end
                 end
               end
-              puts oid # comment out this to see just the measures
+              # puts oid # comment out this to see just the measures
             end
           end
         end
