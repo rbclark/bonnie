@@ -1,7 +1,57 @@
 # This rakefile is for tasks that are designed to be run once to address a specific problem; we're keeping
 # them as a history and as a reference for solving related problems
-require 'pry'
 namespace :bonnie do
+  namespace :measures do
+    desc %{"Should be run on an older version of the database.  Grabs the value_set_oid_version_objects
+            object and saves it to a file called value_set_oid_version_objects.json in the current
+            directory.  Used in conjunction with bonnie:measures:restore_value_set_oid_version_objects"
+    $ rake bonnie:measures:get_value_set_oid_version_objects MEASURE_ID=<measure_id>}
+    task :get_value_set_oid_version_objects => :environment do
+      measure_ids = ENV['MEASURE_ID']
+
+      value_set_oid_version_map = {}
+      measure_ids.each do |measure_id|
+        measure = CqlMeasure.find_by(id: measure_id)
+        value_set_oid_version_map[measure['id'].to_s] = {} # {measure_id : {oid : version}}
+
+        measure.value_set_oid_version_objects.each do |valueset|
+          if !valueset['oid'].include?('-')
+            value_set_oid_version_map[measure['id'].to_s][valueset['oid']] = valueset['version']
+          end
+        end
+
+      end
+
+      File.write('./value_set_oid_version_objects.json', JSON.pretty_generate(value_set_oid_version_map))
+    end
+
+    desc %{"Should be run on the current version of the database.  Restores the value_set_oid_version_objects
+            from the saved file created by bonnie:measures:get_value_set_oid_version_objects. Does not delete
+            the json file."
+    $ rake bonnie:measures:restore_value_set_oid_version_objects}
+    task :restore_value_set_oid_version_objects => :environment do
+      value_set_oid_version_map_json = File.read('./value_set_oid_version_objects.json')
+      value_set_oid_version_map = JSON.parse(value_set_oid_version_map_json)
+      value_set_oid_version_map.each do |measure_id, vs_to_oid_map|
+        measure = CqlMeasure.find_by(id: measure_id)
+        # For each entry in the measure's value_set_by_oid_version_map, restore the old version if it's in vs_map
+        new_vs_oid_version_objects = []
+        measure.value_set_oid_version_objects.each do |valueset|
+          new_vs = {}
+          new_vs['oid'] = valueset['oid']
+          if vs_to_oid_map[valueset['oid']]
+            new_vs['version'] = vs_to_oid_map[valueset['oid']]
+          else
+            new_vs['version'] = valueset['version']
+          end
+          new_vs_oid_version_objects.push(new_vs)
+        end
+        measure.value_set_oid_version_objects = new_vs_oid_version_objects
+        measure.save!
+      end
+    end
+
+
   namespace :patients do
 
     desc %{"temp task"
