@@ -7,7 +7,7 @@ namespace :bonnie do
             directory.  Used in conjunction with bonnie:measures:restore_value_set_oid_version_objects"
     $ rake bonnie:measures:get_value_set_oid_version_objects MEASURE_ID=<measure_id>}
     task :get_value_set_oid_version_objects => :environment do
-      measure_ids = ENV['MEASURE_ID']
+      measure_ids = [ENV['MEASURE_ID']]
 
       value_set_oid_version_map = {}
       measure_ids.each do |measure_id|
