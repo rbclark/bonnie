@@ -47,6 +47,10 @@ namespace :bonnie do
         old_oid = old_value_set[0]
         old_user_id = old_value_set[1]
         old_version = old_value_set[2]
+
+        # find the valueset with the old version in the CURRENT database
+        old_value_set = HealthDataStandards::SVS::ValueSet.find_by(oid: old_oid, user_id: old_user_id, version: old_version)
+
         begin
           new_value_set = HealthDataStandards::SVS::ValueSet.find_by(oid: old_oid, user_id: old_user_id, version: 'N/A')
         rescue Mongoid::Errors::DocumentNotFound
@@ -57,14 +61,16 @@ namespace :bonnie do
             puts "Cannot find value set for #{old_value_set_string}"
           end
         end
+        old_codes_current_db = []
+        old_value_set['concepts'].each do |old_concept|
+          old_codes_current_db.push({"code" => old_concept['code'], 'code_system' => old_concept['code_system'], 'code_system_version' => old_concept['code_system_version']})
+        end
 
-        # Check if there are any differences in code/code system
-        new_value_set['concepts'].each do |concept|
-          code = concept['code']
-          code_system = concept['code_system']
-          code_system_version = concept['code_system_version']
-          # are the code/code system contained in the old value set?
-          if !old_codes.include?({"code_system" => code_system, "code" => code})
+        new_value_set['concepts'].each do |new_concept|
+          code = new_concept['code']
+          code_system = new_concept['code_system']
+          code_system_version = new_concept['code_system_version']
+          if !old_codes_current_db.include?({"code_system" => code_system, "code" => code, "code_system_version" => code_system_version})
             puts "Found Difference with #{old_value_set}"
             puts "    code : #{code}, code_system : #{code_system}, code_system_version: #{code_system_version} not found."
           end
