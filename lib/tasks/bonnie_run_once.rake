@@ -2,6 +2,76 @@
 # them as a history and as a reference for solving related problems
 namespace :bonnie do
   namespace :measures do
+    desc %{"Finds and saves the old codes for each valueset saved from the task
+            bonnie:measures:get_value_set_oid_version_objects in ./value_set_oid_version_objects.json.
+            To be used in conjunction with bonnie:measures:determine_value_set_code_differences.
+            Stores results in ./value_set_codes.json
+            Run this on an older, separate copy of the database from when the measure was last updated.
+            $ rake bonnie:measures:get_old_value_set_codes"}
+    task :get_old_value_set_codes => :environment do
+      value_set_oid_version_map_json = File.read('./value_set_oid_version_objects.json')
+      value_set_oid_version_map = JSON.parse(value_set_oid_version_map_json)
+      # read in current file so we can append
+      begin
+        vs_to_codes_map = JSON.parse(File.read('./value_set_codes.json'))
+      rescue Errno::ENOENT
+        vs_to_codes_map = {}
+      end
+      value_set_oid_version_map.each do |measure_id, vs_to_oid_map|
+        # Find the user_id from the measure_id
+        user_id = CqlMeasure.find_by(id: measure_id).user_id
+        vs_to_oid_map.each do |oid, version|
+          value_set = HealthDataStandards::SVS::ValueSet.find_by(oid: oid, user_id: user_id, version: version)
+          value_set['concepts'].each do |concept|
+            if vs_to_codes_map["#{oid} #{user_id} #{version}"]
+              vs_to_codes_map["#{oid} #{user_id} #{version}"].push({'code_system' => concept['code_system'], 'code' => concept['code'], 'code_system_version' => concept['code_system_version']})
+            else
+                vs_to_codes_map["#{oid} #{user_id} #{version}"] = [{'code_system' => concept['code_system'], 'code' => concept['code'],  'code_system_version' => concept['code_system_version']}]
+            end
+          end
+        end
+      end
+      File.write('./value_set_codes.json', JSON.pretty_generate(vs_to_codes_map))
+    end
+
+    desc %{"Compares the current codes to the ones stored from the task
+            bonnie:measures:get_old_value_set_codes in the file value_set_codes.json
+            Run this on the current version of the database.
+            $ rake bonnie:measures:determine_value_set_code_differences"}
+    task :determine_value_set_code_differences => :environment do
+      value_set_codes_map = File.read('./value_set_codes.json')
+      value_set_codes_map = JSON.parse(value_set_codes_map)
+      value_set_codes_map.each do |old_value_set_string, old_codes|
+        # Find the new value_set, which will haove version N/A
+        old_value_set = old_value_set_string.split(" ")
+        old_oid = old_value_set[0]
+        old_user_id = old_value_set[1]
+        old_version = old_value_set[2]
+        begin
+          new_value_set = HealthDataStandards::SVS::ValueSet.find_by(oid: old_oid, user_id: old_user_id, version: 'N/A')
+        rescue Mongoid::Errors::DocumentNotFound
+          if HealthDataStandards::SVS::ValueSet.where(oid: old_oid, user_id: old_user_id, version: old_version).length == 1
+            puts "No version difference for #{old_value_set_string}"
+            new_value_set = HealthDataStandards::SVS::ValueSet.find_by(oid: old_oid, user_id: old_user_id, version: old_version)
+          else
+            puts "Cannot find value set for #{old_value_set_string}"
+          end
+        end
+
+        # Check if there are any differences in code/code system
+        new_value_set['concepts'].each do |concept|
+          code = concept['code']
+          code_system = concept['code_system']
+          code_system_version = concept['code_system_version']
+          # are the code/code system contained in the old value set?
+          if !old_codes.include?({"code_system" => code_system, "code" => code})
+            puts "Found Difference with #{old_value_set}"
+            puts "    code : #{code}, code_system : #{code_system}, code_system_version: #{code_system_version} not found."
+          end
+        end
+      end
+    end
+
     desc %{"Should be run on an older version of the database.  Grabs the value_set_oid_version_objects
             object and saves it to a file called value_set_oid_version_objects.json in the current
             directory.  Used in conjunction with bonnie:measures:restore_value_set_oid_version_objects"
@@ -9,7 +79,12 @@ namespace :bonnie do
     task :get_value_set_oid_version_objects => :environment do
       measure_ids = [ENV['MEASURE_ID']]
 
-      value_set_oid_version_map = {}
+      # read in the existing file so we can append
+      begin
+        value_set_oid_version_map = JSON.parse(File.read('./value_set_oid_version_objects.json'))
+      rescue Errno::ENOENT
+        value_set_oid_version_map = {}
+      end
       measure_ids.each do |measure_id|
         measure = CqlMeasure.find_by(id: measure_id)
         value_set_oid_version_map[measure['id'].to_s] = {} # {measure_id : {oid : version}}
@@ -50,6 +125,7 @@ namespace :bonnie do
         measure.save!
       end
     end
+  end
 
 
   namespace :patients do
