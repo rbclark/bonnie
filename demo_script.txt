@@ -1,4 +1,4 @@
-Demo Script (Target 07/11/2016)
+Demo Script v2.0
 
 BEFORE THE DEMO
 Log into the application. If CMS522v0 exists, delete all patients associated with it. Then delete the CMS522v0 measure.
@@ -16,24 +16,34 @@ Log into the application. If CMS522v0 exists, delete all patients associated wit
 9. User is returned to the measure dashboard with CMS522v0 loaded.
 10. User clicks the measure title to navigate to the measure view.
     On the measure view, the user can see the Measure title, description, and logic.
-    (Explain the IPP/DENOM/NUMER fields)
+    a. (Explain the IPP/DENOM/NUMER fields)
+       a. IPP/DENOM - initial population and denominator. combined, they are the population of patients that *should* receive the standard of care
+          - had an ischemic stroke
+       b. NUMER - the population of patient that *did* receive the standard of care 
+          - received antithrombotic medication
+       c. DENEX/DENEXCEP - valid reasons why the patient might not receive the standard of care
+          - refused medication or left against medical advice.
+    b. if applicable, note that the logic is now CQL based. Note that statements can refer to other statements (e.g., the IPP)
+       make sure you *know* where the statement the IPP refers to is in the logic
 11. User clicks on the icon with a person and plus sign (add patient button) and navigates to the patient builder view.
 12. The user names the patient "Ischemic No Meds" and provides an expectation that the patient will have IPP and DENOM values of 1.
 13. Based on the logic, the user adds the following to the patient:
 
   Name: Ischemic, No Meds
-  DOB: 10/10/1970 00:00
-  Expected Values: IPP, DENOM
+  Expected Values: IPP 1, DENOM 1
+  
+  ** here, make sure to note why expected values are set! they are set so the MD can compare against actual values. They should be set in advance.**
+  
+  DOB: 01/01/1970 00:00
   Encounter, Performed: Inpatient Encounter
-    start: 11/07/2012 06:00
-    end: 11/09/2012 06:00
-  Diagnosis: Ischemic Stroke
-    start: 11/07/2012 10:00
-    no end
+     Principal Diagnosis: Ischemic Stroke
 
-  (Explain why this makes the IPP and DENOM true)
+  * Explain why this makes the IPP and DENOM true
+  * Show highlighting - highlights green if logic clause evaluates to true. red otherwise.
 
 14. User saves the patient which takes them to the measure view where they can see the results of the calculation.
+    a. review coverage
+    b. show pass rates and 1/1 patient passing
 15. User clicks on the expansion icon for the patient.
     The user can see the results of the calculation highlighted on the Logic, the fact that there's a 100% match with expectations, and what populations the patient ended up in.
 16. With the patient expanded, User clicks the Clone button to clone the patient.
@@ -42,12 +52,18 @@ Log into the application. If CMS522v0 exists, delete all patients associated wit
 
   Name: Ischemic, With Meds
   Expected Values: IPP, DENOM, NUMER
-  Medication, Administered: Antithrombotic Therapy
-    start: 11/08/2012 05:00
-    end: 11/08/2012 06:00
+  Medication, Discharge: Antithrombotic Therapy
     
   (Explain why this makes the NUMER true)
 
 19. The user saves the patient and is taken to the measure view and can now see two patients.
+    a. show larger coverage
+    b. review pass rates and 2/2 patients passing
 
-20. (Explain how the synthetic patients can help show errors in the measure logic)
+20. Go into Ischemic Meds and change the expected values to be incorrect
+    a. Say something like, "For the sake of demonstration, I'm going to pretend that I *don't* think this patient should be in the numerator to show you how bonnie handles failing patients"
+    b. save the patient
+21. Show the fail rate - 1/2 patients passing. Expand the patient and review the population pass/fails
+
+
+  
