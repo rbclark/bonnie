@@ -1,7 +1,7 @@
 Demo Script v2.0
 
 BEFORE THE DEMO
-Log into the application. If CMS522v0 exists, delete all patients associated with it. Then delete the CMS522v0 measure.
+Log into the application. If CMS146v6 exists, delete all patients associated with it. Then delete the CMS146v6 measure.
 
 
 1. User logs into the application
