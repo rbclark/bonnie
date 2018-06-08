@@ -21,8 +21,8 @@ GIT
 
 GIT
   remote: https://github.com/projecttacoma/cql_qdm_patientapi.git
-  revision: 907f95d8c67f90b52ba9346d0a77c045e6058902
-  branch: master
+  revision: e505478b2621090b51927988e08f0219ecca10e0
+  branch: equality_no_a_is_b
   specs:
     cql_qdm_patientapi (1.1.3)
       coffee-rails (~> 4.1)
