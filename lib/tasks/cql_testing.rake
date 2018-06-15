@@ -306,7 +306,7 @@ namespace :bonnie do
           xml_path = "#{library_name}-#{library_version}.xml"
           xml_filenames << xml_path
           puts "creating #{xml_path}"
-          new_file = File.new File.join('tmp', 'package_temp', xml_path), 'wb+'
+          new_file = File.new File.join('tmp', 'package_temp', xml_path), 'wb'
           new_file.write elm_xml
         end
       end
@@ -322,7 +322,7 @@ namespace :bonnie do
         json_filenames << "#{elm_library_version}.json"
         json_path = File.join('tmp', 'package_temp', "#{elm_library_version}.json")
         puts "creating #{elm_library_version}.json"
-        new_file = File.new json_path, 'wb+'
+        new_file = File.new json_path, 'wb'
         new_file.write elm_json
       end
 
