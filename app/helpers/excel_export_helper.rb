@@ -1,30 +1,43 @@
 require 'uri'
 
 module ExcelExportHelper
-  def self.convert_results_for_excel_export(results)
+  def self.convert_results_for_excel_export(results, measure, patients)
     # Convert results from the back-end calculator to the format
     # expected the excel export module
 
-    results_for_excel_export = {}
-    # TODO: do conversion here
+    calc_results = {}
+    measure.populations.each_with_index do | population, index |
+      patients.each do | patient |
+        if !calc_results[index]
+          calc_results[index] = {}
+        end
+        result_criteria = {}
+        result = results[patient.id]
+        binding.pry
+        result['population_relevance'].each do |pop_crit|
+          result_criteria[pop_crit] = result[pop_crit]
+        end
+        calc_results[index][patient.id] = {statement_results: remove_extra(result['statement_results']), criteria: result_criteria}
 
-    ####################################################################################
-    # These are snippets from the existing conversion in measure_view.js.coffee
-    ####################################################################################
-    # for pop in @model.get('populations').models
-    #   for patient in @model.get('patients').models
-    #     if calc_results[pop.cid] == undefined
-    #       calc_results[pop.cid] = {}
-    #     # Re-calculate results before excel export (we need to include pretty result generation)
-    #     bonnie.calculator_selector.clearResult pop, patient
-    #     result = pop.calculate(patient, {doPretty: true})
-    #     result_criteria = {}
-    #     for pop_crit of result.get('population_relevance')
-    #       result_criteria[pop_crit] = result.get(pop_crit)
-    #     calc_results[pop.cid][patient.cid] = {statement_results: @removeExtra(result.get("statement_results")), criteria: result_criteria}
-    ####################################################################################
-    # TODO: do any other conversion needed
-    return results_for_excel_export
+      end
+    end
+
+    return calc_results
+  end
+
+  private_class_method def self.remove_extra(results)
+    ret = {}
+    results.each_key do |libKey|
+      ret[libKey] = {}
+      results[libKey].each_key do |statementKey|
+        if results[libKey][statementKey]['pretty']
+          ret[libKey][statementKey] = results[libKey][statementKey]['pretty']
+        else
+          ret[libKey][statementKey] = results[libKey][statementKey]['final']
+        end
+      end
+    end
+    return ret
   end
 
   def self.get_patient_details(patients)
