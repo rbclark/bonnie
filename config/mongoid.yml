@@ -25,6 +25,6 @@ production:
     default:
       database: bonnie_production
       hosts:
-        - localhost:27017
+        - <%= ENV.fetch('MONGO_PORT_27017_TCP_ADDR', '127.0.0.1') %>:<%= ENV.fetch('MONGO_PORT_27017_TCP_PORT', '27017') %>
   options:
     raise_not_found_error: false
